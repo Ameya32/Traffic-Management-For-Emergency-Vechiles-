@@ -4,6 +4,8 @@ from flask_bcrypt import Bcrypt
 from models.models import db
 from routes.auth_routes import auth_routes
 from flask_cors import CORS
+from routes.driver_routes import driver_routes
+from routes.admin_routes import admin_routes  # ⬅️ add this import
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -22,6 +24,8 @@ jwt = JWTManager(app)
 
 # Register Blueprints
 app.register_blueprint(auth_routes, url_prefix='/auth')
+app.register_blueprint(driver_routes, url_prefix='/driver')
+app.register_blueprint(admin_routes, url_prefix='/admin')
 
 with app.app_context():
     db.create_all()

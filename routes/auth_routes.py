@@ -37,17 +37,15 @@ def login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-
+    
     user = User.query.filter_by(email=email).first()
 
     if not user or not bcrypt.check_password_hash(user.password, password):
         return jsonify({"message": "Invalid credentials"}), 401
 
     # Create JWT token valid for 1 hour
-    access_token = create_access_token(
-        identity={'email': user.email, 'role': user.role},
-        expires_delta=timedelta(hours=2)
-    )
+    access_token = create_access_token(identity=user.email)
+
 
     return jsonify({
         "message": "Login successful",
