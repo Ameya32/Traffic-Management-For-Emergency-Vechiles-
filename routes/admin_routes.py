@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from models.models import db, DriverApplication, User
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity,get_jwt
 
 admin_routes = Blueprint('admin_routes', __name__)
 
@@ -8,11 +8,14 @@ admin_routes = Blueprint('admin_routes', __name__)
 @admin_routes.route('/pending_applications', methods=['GET'])
 @jwt_required()
 def get_pending_applications():
-    current_user = get_jwt_identity()
-    user_email = current_user
-
+    # current_user = get_jwt_identity()
+    # user_email = current_user
+    current_user_email_identity = get_jwt_identity()
+    claims=get_jwt()
+    user_id_from_token=claims.get('user_id')
+    print(user_id_from_token)
     # ✅ Check if admin
-    user = User.query.filter_by(email=user_email).first()
+    user = User.query.filter_by(email=current_user_email_identity).first()
     if not user:
         return jsonify({"message": "User not found"}), 404
 
@@ -48,11 +51,12 @@ def get_pending_applications():
 @admin_routes.route('/pending_applications/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_pending_application_by_user(user_id):
-    current_user = get_jwt_identity()
-    user_email = current_user
-
+    current_user_email_identity = get_jwt_identity()
+    claims=get_jwt()
+    user_id_from_token=claims.get('user_id')
+    print(user_id_from_token)
     # ✅ Check if admin
-    user = User.query.filter_by(email=user_email).first()
+    user = User.query.filter_by(email=current_user_email_identity).first()
     if not user:
         return jsonify({"message": "User not found"}), 404
 
@@ -86,11 +90,12 @@ def get_pending_application_by_user(user_id):
 @admin_routes.route('/approve_application/<int:user_id>', methods=['POST'])
 @jwt_required()
 def approve_driver_application(user_id):
-    current_user = get_jwt_identity()
-    user_email = current_user
-
+    current_user_email_identity = get_jwt_identity()
+    claims=get_jwt()
+    user_id_from_token=claims.get('user_id')
+    print(user_id_from_token)
     # ✅ Check admin
-    user = User.query.filter_by(email=user_email).first()
+    user = User.query.filter_by(email=current_user_email_identity).first()
     if not user:
         return jsonify({"message": "User not found"}), 404
     if user.role.lower() != "admin":

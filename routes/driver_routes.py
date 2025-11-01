@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models.models import db, DriverApplication, User
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity,get_jwt
 
 driver_routes = Blueprint('driver_routes', __name__)
 
@@ -8,11 +8,12 @@ driver_routes = Blueprint('driver_routes', __name__)
 @jwt_required()
 def apply_for_driver():
     data = request.get_json()
-    current_user = get_jwt_identity()
-    print(current_user)
-    # user_email = current_user.get('email')
-    # print(user_email)
-    user = User.query.filter_by(email=current_user).first()
+    current_user_email_identity = get_jwt_identity()
+    claims = get_jwt()   
+    print(current_user_email_identity)
+    user_id_from_token = claims.get('user_id')
+    print(user_id_from_token)
+    user = User.query.filter_by(email=current_user_email_identity).first()
     if not user:
         return jsonify({"message": "User not found"}), 404
 
@@ -39,3 +40,31 @@ def apply_for_driver():
     db.session.commit()
 
     return jsonify({"message": "Application submitted successfully!"}), 201
+
+@driver_routes.route('/is_approved_by_admin', methods=['GET'])
+@jwt_required()
+def is_approved_by_admin():
+    # ✅ Extract both identity (email) and claims (user_id)
+    current_user_email_identity = get_jwt_identity()
+    claims = get_jwt()
+    user_id_from_token = claims.get('user_id')
+
+    # ✅ Fetch user from DB
+    user = User.query.filter_by(email=current_user_email_identity).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    # ✅ Verify user role
+    if user.role.lower() != "ambulance":
+        return jsonify({"message": "Access denied. Only ambulance drivers allowed."}), 403
+
+    # ✅ Fetch their driver application
+    application = DriverApplication.query.filter_by(user_id=user_id_from_token).first()
+    if not application:
+        return jsonify({"approved": False, "message": "No application found"}), 200
+
+    # ✅ Return approval status
+    if application.isApproved:
+        return jsonify({"approved": True, "message": "Application approved by admin"}), 200
+    else:
+        return jsonify({"approved": False, "message": "Application not approved yet"}), 200
