@@ -6,7 +6,10 @@ from routes.auth_routes import auth_routes
 from flask_cors import CORS
 from routes.driver_routes import driver_routes
 from routes.admin_routes import admin_routes  # ⬅️ add this import
-
+from routes.socket_routes import socketio  # ✅ Import SocketIO instance
+# import eventlet
+from flask import render_template
+# eventlet.monkey_patch()  # ✅ allows eventlet to manage sockets
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
@@ -30,5 +33,13 @@ app.register_blueprint(admin_routes, url_prefix='/admin')
 with app.app_context():
     db.create_all()
 
+@app.route("/test")
+def index():
+    return render_template("index.html")
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    # socketio.init_app(app)
+    # socketio.run(app, debug=True)
+    socketio.init_app(app)
+    socketio.run(app, port=5000, debug=True)

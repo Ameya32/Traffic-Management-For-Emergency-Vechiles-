@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Live Location Sender</title>
+</head>
+
+<body>
+    <h2>Send location to backend every 2 seconds (WebSocket)</h2>
+    <button id="startBtn">Start Sending</button>
+
+    <ul id="log"></ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // const socket = io();
+
+        let intervalId = null;
+
+        function sendCoords() {
+            navigator.geolocation.getCurrentPosition(
+                async function (position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const acc = position.coords.accuracy;
+                    const sent_time = Date.now() / 1000;
+
+                    try {
+                        const response = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+                        );
+                        const data = await response.json();
+                        const city = data.address.city || data.address.town || data.address.village || "Unknown";
+
+                        socket.emit("send_coords", { x: lat, y: lon, city, sent_time, acc });
+                        console.log(`📍 ${lat}, ${lon} (${city}) | Accuracy: ${acc} m`);
+                    } catch (err) {
+                        console.error("Reverse geocoding failed:", err);
+                        socket.emit("send_coords", { x: lat, y: lon, city: "Unknown", sent_time });
+                    }
+                },
+
+                // 🧭 2nd parameter → error callback
+                function (error) {
+                    console.error("Geolocation error:", error);
+                },
+
+                // ⚙️ 3rd parameter → options
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0
+                }
+            );
+        }
+
+
+        document.getElementById("startBtn").addEventListener("click", () => {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = setInterval(sendCoords, 2000);
+            console.log("Started sending location every 2s...");
+        });
+
+        // socket.on("coords_received", (data) => {
+        //     const log = document.getElementById("log");
+        //     const li = document.createElement("li");
+        //     li.textContent = `Received (${data.x}, ${data.y}) | Delay: ${data.delay_ms} ms`;
+        //     log.appendChild(li);
+        // });
+    </script>
+
+</body>
+
+</html>
