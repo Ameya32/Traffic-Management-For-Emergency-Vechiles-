@@ -3,8 +3,19 @@ import time
 import numpy as np
 import pandas as pd
 from models.models import Signal
+import paho.mqtt.client as mqtt
+import json
 
 socketio = SocketIO(cors_allowed_origins="*")
+
+# --------------------------------------
+# MQTT Setup
+# --------------------------------------
+BROKER = "broker.hivemq.com"
+PORT = 1883
+
+mqtt_client = mqtt.Client()
+mqtt_client.connect(BROKER, PORT, 60)
 
 # --------------------------------------
 # Global variables
@@ -13,15 +24,13 @@ signal_df = None
 is_city_loaded = False
 is_active = False
 current_city = None
-active_signals = set()   # signals already alerted
+active_signals = set()
 last_nearest_signal = None
-
 
 # --------------------------------------
 # Helper function: Haversine formula
 # --------------------------------------
 def calculate_distances(lat, lon, df):
-    """Compute distance (in km) between (lat, lon) and all signals."""
     R = 6371
     lat1, lon1 = np.radians(lat), np.radians(lon)
     lats2, lons2 = np.radians(df["lat"].values), np.radians(df["lon"].values)
@@ -34,7 +43,6 @@ def calculate_distances(lat, lon, df):
     df["distance_km"] = R * c
     return df.sort_values(by="distance_km").reset_index(drop=True)
 
-
 # --------------------------------------
 # Socket Events
 # --------------------------------------
@@ -42,11 +50,9 @@ def calculate_distances(lat, lon, df):
 def handle_connect():
     print("✅ Client connected")
 
-
 @socketio.on("disconnect")
 def handle_disconnect():
     print("❌ Client disconnected")
-
 
 @socketio.on("send_coords")
 def handle_coords(data):
@@ -57,6 +63,7 @@ def handle_coords(data):
     city = data.get("city")
     sent_time = data.get("sent_time")
     acc = data.get("acc")
+    direction = data.get("direction", "N")  # optional, can be sent from client
 
     now = time.time()
     delay_ms = int((now - sent_time) * 1000)
@@ -77,7 +84,9 @@ def handle_coords(data):
             "id": s.id,
             "signal_name": s.name,
             "lat": s.latitude,
-            "lon": s.longitude
+            "lon": s.longitude,
+            "signal_topic": s.topic,  # assuming this field exists
+            "pre_distKm": s.pre_distKm      # optional: pre-alert distance if stored
         } for s in signals])
 
         current_city = city
@@ -92,22 +101,33 @@ def handle_coords(data):
     # Step 2️⃣ Compute nearest signals
     # ------------------------------
     signal_df = calculate_distances(lat, lon, signal_df)
-    nearest = signal_df.iloc[0]  # top 1 nearest
+    nearest = signal_df.iloc[0]
     nearest_name = nearest["signal_name"]
     nearest_dist_km = nearest["distance_km"]
 
     # ------------------------------
-    # Step 3️⃣ Dummy alert logic
+    # Step 3️⃣ Dummy alert + MQTT publish
     # ------------------------------
-    if nearest_dist_km <= 0.3 and nearest_name not in active_signals:
-        print(f"🚨 ALERT: Ambulance approaching {nearest_name} (distance: {nearest_dist_km*1000:.0f} m)")
+    PRE_ALERT_DIST_KM = 0.5
+
+    if nearest_dist_km <= PRE_ALERT_DIST_KM and nearest_name not in active_signals:
+        print(f"📡 DUMMY ALERT: Ambulance approaching {nearest_name} | Distance: {nearest_dist_km*1000:.0f} m")
         active_signals.add(nearest_name)
         last_nearest_signal = nearest_name
 
-    # If ambulance has passed last nearest signal (distance > 0.3 km again)
-    if last_nearest_signal and nearest_name == last_nearest_signal and nearest_dist_km > 0.3:
+        # Prepare MQTT payload
+        payload = {
+            "signal_topic": nearest["signal_topic"],
+            "distKM": round(nearest_dist_km, 3),
+            "direction": direction,
+            "state": "approaching"
+        }
+        mqtt_client.publish(nearest["signal_topic"], json.dumps(payload))
+        print(f"📤 Published to MQTT: {payload}")
+
+    # Reset if passed
+    if last_nearest_signal and nearest_name == last_nearest_signal and nearest_dist_km > PRE_ALERT_DIST_KM:
         print(f"✅ Passed {last_nearest_signal}. Recomputing nearby signals list...")
-        # Reset to allow new alerts ahead
         last_nearest_signal = None
         active_signals.clear()
 
