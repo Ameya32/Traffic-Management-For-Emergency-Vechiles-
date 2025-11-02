@@ -47,7 +47,7 @@ class DriverApplication(db.Model):
 #         return f"<Signal {self.name} ({self.city})>"
     
 class Signal(db.Model):
-    __tablename__ = "signal"
+    __tablename__ = "signals"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)

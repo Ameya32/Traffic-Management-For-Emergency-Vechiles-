@@ -1,5 +1,88 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Simulated Ambulance Journey</title>
+</head>
+<body>
+  <h2>Simulated Journey (Static GPS Path → send every 2s)</h2>
+  <button id="startBtn">Start Simulation</button>
+
+  <ul id="log"></ul>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    const log = document.getElementById("log");
+
+    // 🚑 Predefined Ambulance Journey Data (Pune)
+    const journey = [
+      { lat: 18.45750, lon: 73.89430, acc: 37 },
+      { lat: 18.45750, lon: 73.89395, acc: 42 },
+      { lat: 18.45750, lon: 73.89360, acc: 35 },
+      { lat: 18.45750, lon: 73.89325, acc: 40 },
+      { lat: 18.45750, lon: 73.89290, acc: 28 },
+      { lat: 18.45750, lon: 73.89255, acc: 31 },
+      { lat: 18.45750, lon: 73.89220, acc: 29 },
+      { lat: 18.45750, lon: 73.89185, acc: 25 },
+      { lat: 18.45750, lon: 73.89160, acc: 21 },
+      { lat: 18.45750, lon: 73.89145, acc: 19 },
+      { lat: 18.45750, lon: 73.89137, acc: 18 },
+      { lat: 18.45750, lon: 73.89133, acc: 17 },
+      { lat: 18.45750, lon: 73.89130, acc: 15 },
+      { lat: 18.45750, lon: 73.89110, acc: 20 },
+      { lat: 18.45750, lon: 73.89085, acc: 23 },
+      { lat: 18.45750, lon: 73.89060, acc: 27 },
+      { lat: 18.45750, lon: 73.89035, acc: 33 },
+      { lat: 18.45750, lon: 73.89010, acc: 38 },
+      { lat: 18.45750, lon: 73.88985, acc: 44 },
+      { lat: 18.45750, lon: 73.88960, acc: 41 },
+      { lat: 18.45750, lon: 73.88935, acc: 46 },
+      { lat: 18.45750, lon: 73.88910, acc: 40 },
+      { lat: 18.45750, lon: 73.88885, acc: 36 },
+      { lat: 18.45750, lon: 73.88860, acc: 39 },
+      { lat: 18.45750, lon: 73.88835, acc: 32 },
+    ];
+
+    let index = 0;
+    let intervalId = null;
+
+    function sendSimulatedCoords() {
+      if (index >= journey.length) {
+        clearInterval(intervalId);
+        console.log("✅ Simulation completed");
+        return;
+      }
+
+      const point = journey[index++];
+      const sent_time = Date.now() / 1000;
+      const data = {
+        x: point.lat,
+        y: point.lon,
+        city: "Pune",
+        sent_time,
+        acc: point.acc,
+      };
+
+      socket.emit("send_coords", data);
+      console.log(`🚑 Sent [${index}/${journey.length}] → ${point.lat}, ${point.lon}`);
+      
+      const li = document.createElement("li");
+      li.textContent = `Sent [${index}] ${point.lat}, ${point.lon}`;
+      log.appendChild(li);
+    }
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      if (intervalId) clearInterval(intervalId);
+      index = 0;
+      intervalId = setInterval(sendSimulatedCoords, 2000);
+      console.log("▶️ Started simulated journey...");
+    });
+  </script>
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
 
 <head>
     <title>Live Location Sender</title>
@@ -70,4 +153,4 @@
 
 </body>
 
-</html>
+</html> -->

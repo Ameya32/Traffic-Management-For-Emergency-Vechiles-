@@ -75,9 +75,9 @@ def handle_coords(data):
 
         data_list = [{
             "id": s.id,
-            "lat": s.lat,
-            "lon": s.lon,
-            "signal_name": s.signal_name
+            "lat": s.latitude,
+            "lon": s.longitude,
+            "signal_name": s.name
         } for s in signals]
 
         signal_df = pd.DataFrame(data_list)
