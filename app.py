@@ -7,6 +7,7 @@ from flask_cors import CORS
 from routes.driver_routes import driver_routes
 from routes.admin_routes import admin_routes  # ⬅️ add this import
 from routes.socket_routes import socketio  # ✅ Import SocketIO instance
+
 # import eventlet
 from flask import render_template
 # eventlet.monkey_patch()  # ✅ allows eventlet to manage sockets

@@ -32,3 +32,26 @@ class DriverApplication(db.Model):
     isApproved = db.Column(db.Boolean, default=False, nullable=False)
 
     user = db.relationship('User', backref=db.backref('applications', lazy=True))
+
+# class Signal(db.Model):
+#     __tablename__ = 'signals'
+
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     name = db.Column(db.String(100), nullable=True)
+#     latitude = db.Column(db.Float, nullable=False)
+#     longitude = db.Column(db.Float, nullable=False)
+#     topic = db.Column(db.String(100))
+#     city = db.Column(db.String(100), nullable=False)
+
+#     def __repr__(self):
+#         return f"<Signal {self.name} ({self.city})>"
+    
+class Signal(db.Model):
+    __tablename__ = "signal"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    topic = db.Column(db.String(100), nullable=False)
+    city = db.Column(db.String(50), nullable=False)
