@@ -86,7 +86,7 @@ def handle_coords(data):
             "lat": s.latitude,
             "lon": s.longitude,
             "signal_topic": s.topic,  # assuming this field exists
-            "pre_distKm": s.pre_distKm      # optional: pre-alert distance if stored
+            #"pre_distKm": s.pre_distKm      # optional: pre-alert distance if stored
         } for s in signals])
 
         current_city = city
@@ -122,7 +122,10 @@ def handle_coords(data):
             "direction": direction,
             "state": "approaching"
         }
-        mqtt_client.publish(nearest["signal_topic"], json.dumps(payload))
+
+        TOPIC = f"traffic/{nearest["signal_topic"]}"
+        print(TOPIC)
+        mqtt_client.publish(TOPIC, json.dumps(payload))
         print(f"📤 Published to MQTT: {payload}")
 
     # Reset if passed
