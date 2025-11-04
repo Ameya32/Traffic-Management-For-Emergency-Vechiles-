@@ -16,6 +16,7 @@ BROKER = "broker.hivemq.com"
 PORT = 1883
 mqtt_client = mqtt.Client()
 mqtt_client.connect(BROKER, PORT, 60)
+mqtt_client.loop_start()  # ✅ Keeps MQTT connection alive in background
 
 # --------------------------------------
 # Globals
@@ -150,16 +151,19 @@ def handle_coords(data):
         last_nearest_signal = nearest_name
 
         payload = {
-            "signal_topic": nearest["signal_topic"],
-            "distKM": round(float(nearest_dist_km), 3),
-            "direction": direction,  # ✅ direction w.r.t signal
-            "state": "approaching",
+            "signal_topic":nearest["signal_topic"],
+            "distKM":round(float(nearest_dist_km), 3),
+            "direction":direction,  # ✅ direction w.r.t signal
+            "state":"approching",
             #"timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         topic = f"traffic/{nearest['signal_topic']}"
-        mqtt_client.publish(topic, json.dumps(payload))
+        compact_json = json.dumps(payload, separators=(',', ':'))
+        print(compact_json)
+        result=mqtt_client.publish(topic, compact_json)
         print(f"📤 Published (approaching) to '{topic}'")
         print(f"📤 Published (approaching) to '{payload}'")
+        print(f"📤 Published (approaching) RESULT '{result.rc}'")
 
     # ✅ Leaving signal
     elif trend == "leaving" and current_state == "approaching" and nearest_dist_km > PRE_ALERT_DIST_KM_LEAVING:
@@ -174,10 +178,11 @@ def handle_coords(data):
             #"timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         topic = f"traffic/{nearest['signal_topic']}"
-        mqtt_client.publish(topic, json.dumps(payload))
+        result=mqtt_client.publish(topic, json.dumps(payload))
+        # mqtt_client.loop(0.1)  # or mqtt_client.loop_start() globally
         print(f"📤 Published (leaving) to '{topic}'")
         print(f"📤 Published (leaving) to '{payload}'")
-
+        print(f"📤 Published (approaching) RESULT '{result.rc}'")
         # Reset flags for next signal
         current_state = "idle"
         last_nearest_signal = None
