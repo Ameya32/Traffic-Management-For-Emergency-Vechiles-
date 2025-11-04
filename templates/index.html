@@ -4,9 +4,8 @@
   <title>Simulated Ambulance Journey</title>
 </head>
 <body>
-  <h2>Simulated Journey (Static GPS Path → send every 2s)</h2>
+  <h2>Simulated Journey (Approaching → Passing → Leaving Signal)</h2>
   <button id="startBtn">Start Simulation</button>
-
   <ul id="log"></ul>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
@@ -14,33 +13,87 @@
     const socket = io();
     const log = document.getElementById("log");
 
-    // 🚑 Predefined Ambulance Journey Data (Pune)
+    // 🚑 New Journey Data (East ↔ West across s101)
     const journey = [
-      { lat: 18.45750, lon: 73.89430, acc: 37 },
-      { lat: 18.45750, lon: 73.89395, acc: 42 },
-      { lat: 18.45750, lon: 73.89360, acc: 35 },
-      { lat: 18.45750, lon: 73.89325, acc: 40 },
-      { lat: 18.45750, lon: 73.89290, acc: 28 },
-      { lat: 18.45750, lon: 73.89255, acc: 31 },
-      { lat: 18.45750, lon: 73.89220, acc: 29 },
-      { lat: 18.45750, lon: 73.89185, acc: 25 },
-      { lat: 18.45750, lon: 73.89160, acc: 21 },
-      { lat: 18.45750, lon: 73.89145, acc: 19 },
-      { lat: 18.45750, lon: 73.89137, acc: 18 },
-      { lat: 18.45750, lon: 73.89133, acc: 17 },
-      { lat: 18.45750, lon: 73.89130, acc: 15 },
-      { lat: 18.45750, lon: 73.89110, acc: 20 },
-      { lat: 18.45750, lon: 73.89085, acc: 23 },
-      { lat: 18.45750, lon: 73.89060, acc: 27 },
-      { lat: 18.45750, lon: 73.89035, acc: 33 },
-      { lat: 18.45750, lon: 73.89010, acc: 38 },
-      { lat: 18.45750, lon: 73.88985, acc: 44 },
-      { lat: 18.45750, lon: 73.88960, acc: 41 },
-      { lat: 18.45750, lon: 73.88935, acc: 46 },
-      { lat: 18.45750, lon: 73.88910, acc: 40 },
-      { lat: 18.45750, lon: 73.88885, acc: 36 },
-      { lat: 18.45750, lon: 73.88860, acc: 39 },
-      { lat: 18.45750, lon: 73.88835, acc: 32 },
+      { lat: 18.45750, lon: 73.88930, dir: "East", dist: 200, acc: 33 },
+      { lat: 18.45750, lon: 73.88935, dir: "East", dist: 195, acc: 33 },
+      { lat: 18.45750, lon: 73.88940, dir: "East", dist: 190, acc: 32 },
+      { lat: 18.45750, lon: 73.88945, dir: "East", dist: 185, acc: 31 },
+      { lat: 18.45750, lon: 73.88950, dir: "East", dist: 180, acc: 31 },
+      { lat: 18.45750, lon: 73.88955, dir: "East", dist: 175, acc: 30 },
+      { lat: 18.45750, lon: 73.88960, dir: "East", dist: 170, acc: 30 },
+      { lat: 18.45750, lon: 73.88965, dir: "East", dist: 165, acc: 29 },
+      { lat: 18.45750, lon: 73.88970, dir: "East", dist: 160, acc: 29 },
+      { lat: 18.45750, lon: 73.88975, dir: "East", dist: 155, acc: 28 },
+      { lat: 18.45750, lon: 73.88980, dir: "East", dist: 150, acc: 28 },
+      { lat: 18.45750, lon: 73.88985, dir: "East", dist: 145, acc: 27 },
+      { lat: 18.45750, lon: 73.88990, dir: "East", dist: 140, acc: 27 },
+      { lat: 18.45750, lon: 73.88995, dir: "East", dist: 135, acc: 26 },
+      { lat: 18.45750, lon: 73.89000, dir: "East", dist: 130, acc: 26 },
+      { lat: 18.45750, lon: 73.89005, dir: "East", dist: 125, acc: 25 },
+      { lat: 18.45750, lon: 73.89010, dir: "East", dist: 120, acc: 25 },
+      { lat: 18.45750, lon: 73.89015, dir: "East", dist: 115, acc: 24 },
+      { lat: 18.45750, lon: 73.89020, dir: "East", dist: 110, acc: 24 },
+      { lat: 18.45750, lon: 73.89025, dir: "East", dist: 105, acc: 23 },
+      { lat: 18.45750, lon: 73.89030, dir: "East", dist: 100, acc: 23 },
+      { lat: 18.45750, lon: 73.89035, dir: "East", dist: 95, acc: 22 },
+      { lat: 18.45750, lon: 73.89040, dir: "East", dist: 90, acc: 22 },
+      { lat: 18.45750, lon: 73.89045, dir: "East", dist: 85, acc: 21 },
+      { lat: 18.45750, lon: 73.89050, dir: "East", dist: 80, acc: 21 },
+      { lat: 18.45750, lon: 73.89055, dir: "East", dist: 75, acc: 21 },
+      { lat: 18.45750, lon: 73.89060, dir: "East", dist: 70, acc: 21 },
+      { lat: 18.45750, lon: 73.89065, dir: "East", dist: 65, acc: 20 },
+      { lat: 18.45750, lon: 73.89070, dir: "East", dist: 60, acc: 20 },
+      { lat: 18.45750, lon: 73.89075, dir: "East", dist: 55, acc: 19 },
+      { lat: 18.45750, lon: 73.89080, dir: "East", dist: 50, acc: 19 },
+      { lat: 18.45750, lon: 73.89085, dir: "East", dist: 45, acc: 19 },
+      { lat: 18.45750, lon: 73.89090, dir: "East", dist: 40, acc: 18 },
+      { lat: 18.45750, lon: 73.89095, dir: "East", dist: 35, acc: 18 },
+      { lat: 18.45750, lon: 73.89100, dir: "East", dist: 30, acc: 17 },
+      { lat: 18.45750, lon: 73.89105, dir: "East", dist: 25, acc: 17 },
+      { lat: 18.45750, lon: 73.89110, dir: "East", dist: 20, acc: 17 },
+      { lat: 18.45750, lon: 73.89115, dir: "East", dist: 15, acc: 16 },
+      { lat: 18.45750, lon: 73.89120, dir: "East", dist: 10, acc: 16 },
+      { lat: 18.45750, lon: 73.89125, dir: "East", dist: 5, acc: 15 },
+      { lat: 18.45750, lon: 73.89140, dir: "West", dist: 10, acc: 16 },
+      { lat: 18.45750, lon: 73.89145, dir: "West", dist: 15, acc: 17 },
+      { lat: 18.45750, lon: 73.89150, dir: "West", dist: 20, acc: 17 },
+      { lat: 18.45750, lon: 73.89155, dir: "West", dist: 25, acc: 18 },
+      { lat: 18.45750, lon: 73.89160, dir: "West", dist: 30, acc: 18 },
+      { lat: 18.45750, lon: 73.89165, dir: "West", dist: 35, acc: 18 },
+      { lat: 18.45750, lon: 73.89170, dir: "West", dist: 40, acc: 19 },
+      { lat: 18.45750, lon: 73.89175, dir: "West", dist: 45, acc: 19 },
+      { lat: 18.45750, lon: 73.89180, dir: "West", dist: 50, acc: 19 },
+      { lat: 18.45750, lon: 73.89185, dir: "West", dist: 55, acc: 20 },
+      { lat: 18.45750, lon: 73.89190, dir: "West", dist: 60, acc: 20 },
+      { lat: 18.45750, lon: 73.89195, dir: "West", dist: 65, acc: 20 },
+      { lat: 18.45750, lon: 73.89200, dir: "West", dist: 70, acc: 21 },
+      { lat: 18.45750, lon: 73.89205, dir: "West", dist: 75, acc: 21 },
+      { lat: 18.45750, lon: 73.89210, dir: "West", dist: 80, acc: 21 },
+      { lat: 18.45750, lon: 73.89215, dir: "West", dist: 85, acc: 22 },
+      { lat: 18.45750, lon: 73.89220, dir: "West", dist: 90, acc: 22 },
+      { lat: 18.45750, lon: 73.89225, dir: "West", dist: 95, acc: 23 },
+      { lat: 18.45750, lon: 73.89230, dir: "West", dist: 100, acc: 23 },
+      { lat: 18.45750, lon: 73.89235, dir: "West", dist: 105, acc: 24 },
+      { lat: 18.45750, lon: 73.89240, dir: "West", dist: 110, acc: 25 },
+      { lat: 18.45750, lon: 73.89245, dir: "West", dist: 115, acc: 25 },
+      { lat: 18.45750, lon: 73.89250, dir: "West", dist: 120, acc: 26 },
+      { lat: 18.45750, lon: 73.89255, dir: "West", dist: 125, acc: 26 },
+      { lat: 18.45750, lon: 73.89260, dir: "West", dist: 130, acc: 27 },
+      { lat: 18.45750, lon: 73.89265, dir: "West", dist: 135, acc: 27 },
+      { lat: 18.45750, lon: 73.89270, dir: "West", dist: 140, acc: 28 },
+      { lat: 18.45750, lon: 73.89275, dir: "West", dist: 145, acc: 28 },
+      { lat: 18.45750, lon: 73.89280, dir: "West", dist: 150, acc: 29 },
+      { lat: 18.45750, lon: 73.89285, dir: "West", dist: 155, acc: 29 },
+      { lat: 18.45750, lon: 73.89290, dir: "West", dist: 160, acc: 30 },
+      { lat: 18.45750, lon: 73.89295, dir: "West", dist: 165, acc: 31 },
+      { lat: 18.45750, lon: 73.89300, dir: "West", dist: 170, acc: 31 },
+      { lat: 18.45750, lon: 73.89305, dir: "West", dist: 175, acc: 32 },
+      { lat: 18.45750, lon: 73.89310, dir: "West", dist: 180, acc: 33 },
+      { lat: 18.45750, lon: 73.89315, dir: "West", dist: 185, acc: 33 },
+      { lat: 18.45750, lon: 73.89320, dir: "West", dist: 190, acc: 34 },
+      { lat: 18.45750, lon: 73.89325, dir: "West", dist: 195, acc: 35 },
+      { lat: 18.45750, lon: 73.89330, dir: "West", dist: 200, acc: 35 },
     ];
 
     let index = 0;
@@ -56,18 +109,21 @@
       const point = journey[index++];
       const sent_time = Date.now() / 1000;
       const data = {
+        vehical_id: 101,
         x: point.lat,
         y: point.lon,
+        direction: point.dir,
+        distance: point.dist,
+        acc: point.acc,
         city: "Pune",
         sent_time,
-        acc: point.acc,
       };
 
       socket.emit("send_coords", data);
-      console.log(`🚑 Sent [${index}/${journey.length}] → ${point.lat}, ${point.lon}`);
-      
+      console.log(`🚑 Sent [${index}/${journey.length}] → ${point.lat}, ${point.lon} | ${point.dir}`);
+
       const li = document.createElement("li");
-      li.textContent = `Sent [${index}] ${point.lat}, ${point.lon}`;
+      li.textContent = `Sent [${index}] ${point.lat}, ${point.lon} (${point.dir})`;
       log.appendChild(li);
     }
 
@@ -75,7 +131,7 @@
       if (intervalId) clearInterval(intervalId);
       index = 0;
       intervalId = setInterval(sendSimulatedCoords, 2000);
-      console.log("▶️ Started simulated journey...");
+      console.log("▶ Started simulated journey...");
     });
   </script>
 </body>

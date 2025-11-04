@@ -30,6 +30,10 @@ last_lat = None
 last_lon = None
 first_fix = True   # ✅ Used to skip first coord for direction
 
+# Globals to add at top
+current_state = "idle"
+last_distance = None
+
 # --------------------------------------
 # Helpers
 # --------------------------------------
@@ -78,7 +82,8 @@ def handle_disconnect():
 @socketio.on("send_coords")
 def handle_coords(data):
     global signal_df, is_city_loaded, is_active, current_city
-    global active_signals, last_nearest_signal, last_lat, last_lon, first_fix
+    global active_signals, last_nearest_signal, last_lat, last_lon
+    global first_fix, current_state, last_distance
 
     lat = data.get("x")
     lon = data.get("y")
@@ -112,52 +117,73 @@ def handle_coords(data):
     if not is_active:
         return
 
-    # Step 2️⃣: Compute direction
-    if last_lat is not None and last_lon is not None:
-        bearing = get_bearing(last_lat, last_lon, lat, lon)
-        direction = get_compass_direction(bearing)
-    else:
-        direction = "INITIAL"
-
-    # Update last position
-    last_lat, last_lon = lat, lon
-
-    # Skip alert on very first fix
-    if first_fix:
-        print("🧭 First coordinate received — waiting for next to determine direction.")
-        first_fix = False
-        return
-
-    # Step 3️⃣: Nearest signal
+    # Step 2️⃣: Compute direction — now relative to nearest signal
     signal_df = calculate_distances(lat, lon, signal_df)
     nearest = signal_df.iloc[0]
     nearest_name = nearest["signal_name"]
     nearest_dist_km = nearest["distance_km"]
 
-    # Step 4️⃣: Publish MQTT if close
+    # 🧭 Direction: where ambulance is coming *from* relative to the signal
+    bearing = get_bearing(nearest["lat"], nearest["lon"], lat, lon)
+    direction = get_compass_direction(bearing)
+
+    # Determine distance trend
+    if last_distance is not None:
+        if nearest_dist_km < last_distance:
+            trend = "approaching"
+        elif nearest_dist_km > last_distance:
+            trend = "leaving"
+        else:
+            trend = "stable"
+    else:
+        trend = "unknown"
+    last_distance = nearest_dist_km
+
     PRE_ALERT_DIST_KM = 0.5
-    if nearest_dist_km <= PRE_ALERT_DIST_KM and nearest_name not in active_signals:
-        print(f"🚨 ALERT: Ambulance approaching {nearest_name} | Distance: {nearest_dist_km*1000:.0f} m | Direction: {direction}")
+    PRE_ALERT_DIST_KM_LEAVING = 0.1
+
+    # 🚨 Approaching signal (only once)
+    if trend == "approaching" and nearest_dist_km <= PRE_ALERT_DIST_KM and current_state != "approaching":
+        current_state = "approaching"
+        print(f"🚨 ALERT: Approaching {nearest_name} | {nearest_dist_km*1000:.0f} m | Dir wrt signal: {direction}")
         active_signals.add(nearest_name)
         last_nearest_signal = nearest_name
 
         payload = {
             "signal_topic": nearest["signal_topic"],
             "distKM": round(float(nearest_dist_km), 3),
-            "direction": direction,
+            "direction": direction,  # ✅ direction w.r.t signal
             "state": "approaching",
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
-
         topic = f"traffic/{nearest['signal_topic']}"
         mqtt_client.publish(topic, json.dumps(payload))
-        print(f"📤 Published to MQTT topic '{topic}': {payload}")
+        print(f"📤 Published (approaching) to '{topic}'")
+        print(f"📤 Published (approaching) to '{payload}'")
 
-    # Step 5️⃣: Reset after passing
-    if last_nearest_signal and nearest_name == last_nearest_signal and nearest_dist_km > PRE_ALERT_DIST_KM:
-        print(f"✅ Passed {last_nearest_signal}. Recomputing nearby signals list...")
+    # ✅ Leaving signal
+    elif trend == "leaving" and current_state == "approaching" and nearest_dist_km > PRE_ALERT_DIST_KM_LEAVING:
+        current_state = "leaving"
+        print(f"✅ Leaving {last_nearest_signal} | {nearest_dist_km*1000:.0f} m | Dir wrt signal: {direction}")
+
+        payload = {
+            "signal_topic": nearest["signal_topic"],
+            "distKM": round(float(nearest_dist_km), 3),
+            "direction": direction,  # ✅ direction w.r.t signal
+            "state": "leaving",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        topic = f"traffic/{nearest['signal_topic']}"
+        mqtt_client.publish(topic, json.dumps(payload))
+        print(f"📤 Published (leaving) to '{topic}'")
+        print(f"📤 Published (leaving) to '{payload}'")
+
+        # Reset flags for next signal
+        current_state = "idle"
         last_nearest_signal = None
         active_signals.clear()
+        last_distance = None
+
 
     # Step 6️⃣: Log nearest signals
     print("🚦 Top 3 nearest signals:")
