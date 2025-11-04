@@ -154,7 +154,7 @@ def handle_coords(data):
             "distKM": round(float(nearest_dist_km), 3),
             "direction": direction,  # ✅ direction w.r.t signal
             "state": "approaching",
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            #"timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         topic = f"traffic/{nearest['signal_topic']}"
         mqtt_client.publish(topic, json.dumps(payload))
@@ -171,7 +171,7 @@ def handle_coords(data):
             "distKM": round(float(nearest_dist_km), 3),
             "direction": direction,  # ✅ direction w.r.t signal
             "state": "leaving",
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            #"timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         topic = f"traffic/{nearest['signal_topic']}"
         mqtt_client.publish(topic, json.dumps(payload))
